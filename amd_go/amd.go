@@ -38,7 +38,7 @@ func amd (dists []uint32,v uint32) {
 		}
  	}
 	solution = smd / paths;
-	fmt.Printf("solution -- %d\n", solution);
+	fmt.Printf("%d\n", solution);
 
 }
 
@@ -88,7 +88,7 @@ func main() {
 	for i= 0; i <v; i++ {
 		dists[i*v+i] = 0;
 	}
-	fmt.Printf("len=%d cap=%d %v\n", len(dists), cap(dists), dists)
+	//fmt.Printf("len=%d cap=%d %v\n", len(dists), cap(dists), dists)
 	var source, dest ,cost uint32;
 	for i=0;i<e; i++ {
 		fmt.Scanf("%d %d %d", &source, &dest, &cost);

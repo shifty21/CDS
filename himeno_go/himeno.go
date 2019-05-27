@@ -54,8 +54,8 @@ func main() {
 	new_mat(&a,4,mimax,mjmax,mkmax);
 	new_mat(&b,3,mimax,mjmax,mkmax);
 	new_mat(&c,3,mimax,mjmax,mkmax);
-	fmt.Printf("value of p: mrows : %d, mcols: %d, mdeps: : %d\n", p.mnums,p.mcols,p.mdeps);
-	fmt.Printf("value of bnd: mrows : %d, mcols: %d, mdeps: : %d\n", a.mnums,a.mcols,a.mdeps);
+	//fmt.Printf("value of p: mrows : %d, mcols: %d, mdeps: : %d\n", p.mnums,p.mcols,p.mdeps);
+	//fmt.Printf("value of bnd: mrows : %d, mcols: %d, mdeps: : %d\n", a.mnums,a.mcols,a.mdeps);
 	mat_set_init(&p);
 	mat_set(&bnd,0,1.0);
 	mat_set(&wrk1,0,0.0);
@@ -99,7 +99,7 @@ func new_mat (mat* Matrix, vmnums int, vmrows int, vmcols int, vmdeps int) (int)
 		mat.m = make([]float32,vmnums*vmrows*vmcols*vmdeps)
 	
 	if mat.m !=nil {
-		fmt.Printf("value of matrix: mrows : %d, mcols: %d, mdeps: : %d\n", mat.mnums,mat.mcols,mat.mdeps);
+		//fmt.Printf("value of matrix: mrows : %d, mcols: %d, mdeps: : %d\n", mat.mnums,mat.mcols,mat.mdeps);
 		return 1
 	}
 	return 0
@@ -123,7 +123,7 @@ func mat_set(mat* Matrix, l int, val float32) {
 }
 
 func  mat_set_init(mat* Matrix) {
-	fmt.Printf("value of p: mrows : %d, mcols: %d, mdeps: : %d", mat.mrows,mat.mcols,mat.mdeps);
+	//fmt.Printf("value of p: mrows : %d, mcols: %d, mdeps: : %d", mat.mrows,mat.mcols,mat.mdeps);
 	for i := 0 ; i < mat.mrows; i++ {
 		for j := 0; j< mat.mcols; j++ {
 			for k :=0; k< mat.mdeps; k++  {
@@ -144,7 +144,7 @@ func jacobi(nn int, a* Matrix, b* Matrix,c* Matrix, p* Matrix, bnd* Matrix, wrk1
 	imax = p.mrows-1;
 	jmax = p.mcols-1;
 	kmax = p.mdeps-1;
-	fmt.Printf("inside jacobi imax : %d, jmax : %d, kmax: %d \n",imax,jmax,kmax);
+	//fmt.Printf("inside jacobi imax : %d, jmax : %d, kmax: %d \n",imax,jmax,kmax);
 	for n=0;n<nn;n++ {
 		gosa = 0.0
 		for i=1;i<imax;i++ {
