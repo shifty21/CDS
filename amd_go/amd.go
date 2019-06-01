@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	"runtime"
+//	"runtime"
 )
 
 func md_all_pairs (dists []uint32, v uint32) {
@@ -110,9 +110,9 @@ func main() {
 	//allocates distances matrix (w/sice v*v)
 	// and sets it with max distance and 0 for own vertex
 	dists := make([]uint32, v*v);
-	start:=makeTimestamp()
+//	start:=makeTimestamp()
 	memsetRepeat(dists, 1<<32 - 1)
-	end:=makeTimestamp()
+//	end:=makeTimestamp()
 //	fmt.Printf("memsetRepeat time %d\n", end-start)
 	var i uint32
 	for i= 0; i <v; i++ {
