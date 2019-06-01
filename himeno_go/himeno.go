@@ -1,6 +1,11 @@
 package main 
 import (
 	"fmt"
+	"log"
+	"runtime/pprof"
+	"flag"
+	"os"
+	"runtime"
 )
 
 
@@ -28,7 +33,24 @@ func MR_get(mat* Matrix, n int, r int, c int, d int) (float32) {
 
 var omega float32 = 0.8
 var a,b,c,p,bnd,wrk1,wrk2 Matrix;
+
+var cpuprofile = flag.String("cpuprofile", "cpu.prof", "write cpu profile to `file`")
+var memprofile = flag.String("memprofile", "", "write memory profile to `file`")
+
 func main() {
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create("cpu.prof")
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+		defer f.Close()
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+		defer pprof.StopCPUProfile()
+	}
+
 
 	var nn int;
 	var mimax,mjmax,mkmax int;
@@ -88,6 +110,19 @@ func main() {
 	//clear_mat(&a);
 	//clear_mat(&b);
 	//clear_mat(&c);
+
+	if *memprofile != "" {
+		f, err := os.Create("mem.prof")
+		if err != nil {
+			log.Fatal("could not create memory profile: ", err)
+		}
+		defer f.Close()
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal("could not write memory profile: ", err)
+		}
+	}
+
 }
 
 func new_mat (mat* Matrix, vmnums int, vmrows int, vmcols int, vmdeps int) (int) {

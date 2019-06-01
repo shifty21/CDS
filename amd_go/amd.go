@@ -4,7 +4,12 @@ import (
 	"fmt"
 	"sync"
 	"time"
-//	"runtime"
+	"runtime"
+	"os"
+	"log"
+	"flag"
+	"runtime/pprof"
+
 )
 
 func md_all_pairs (dists []uint32, v uint32) {
@@ -93,15 +98,27 @@ func memsetRepeat(a []uint32, v uint32) {
 func makeTimestamp() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }
-
+var cpuprofile = flag.String("cpuprofile", "cpu.prof", "write cpu profile to `file`")
+var memprofile = flag.String("memprofile", "mem.prof", "write memory profile to `file`")
 //Main program - reads input, calls FW, shows output
 func main() {
-//	runtime.GOMAXPROCS(1)
+
+
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create("cpu.prof")
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+		defer f.Close()
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+		defer pprof.StopCPUProfile()
+	}
+
 	//Read input
 	//First line : v(number of vertices)  and e (number of edges)
-
-//	fmt.Printf("No of available cores %d ", runtime.NumCPU())
-
 	var v,e uint32;
 	_, errv := fmt.Scanf("%d %d", &v, &e)
 	if errv!=nil {
@@ -110,10 +127,7 @@ func main() {
 	//allocates distances matrix (w/sice v*v)
 	// and sets it with max distance and 0 for own vertex
 	dists := make([]uint32, v*v);
-//	start:=makeTimestamp()
 	memsetRepeat(dists, 1<<32 - 1)
-//	end:=makeTimestamp()
-//	fmt.Printf("memsetRepeat time %d\n", end-start)
 	var i uint32
 	for i= 0; i <v; i++ {
 		dists[i*v+i] = 0;
@@ -135,6 +149,19 @@ func main() {
 		debug(dists,v)
 	}
 
+	// ... rest of the program ...
+
+	if *memprofile != "" {
+		f, err := os.Create("mem.prof")
+		if err != nil {
+			log.Fatal("could not create memory profile: ", err)
+		}
+		defer f.Close()
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal("could not write memory profile: ", err)
+		}
+	}
 
 
 
