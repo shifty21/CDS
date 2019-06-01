@@ -3,37 +3,41 @@ package main
 import (
 	"fmt"
 	"sync"
+	"time"
+	"runtime"
 )
 
 func md_all_pairs (dists []uint32, v uint32) {
 	var wg sync.WaitGroup
-
+	var div = v/100
 	var k,i uint32;
 	for k =0; k < v ; k++ {
-		for i=0; i<v; i++ {
+		for i=0; i<v-div; i=i+div {
+			//fmt.Printf("value range of i %d to %d \n", i,i+div)
 			wg.Add(1);
-			go internal_loop(dists, v, k,i,  &wg)
-			wg.Wait();
+			go internal_loop(dists, v, k,i,i+div,&wg)
 		}
+		wg.Add(1)
+		go internal_loop(dists, v, k,i,v,&wg)
 		wg.Wait()
 	}
 }
 
 
-func internal_loop(dists []uint32, v uint32, k uint32,i uint32, wg *sync.WaitGroup) {
-	var j uint32;
+func internal_loop(dists []uint32, v uint32, k uint32,istart uint32,iend uint32, wg *sync.WaitGroup) {
+	var j,i uint32;
 	defer wg.Done()
 	go func(){
-		for j=0; j<v; j++ {
-			var intermediary uint32 = dists[i*v+k] + dists[k*v+j];
-			//check for overflows
-			if ((intermediary >= dists[i*v+k]) &&
-				(intermediary >= dists[k*v+j]) &&
-				(intermediary < dists[i*v+j])){
-				dists[i*v+j] = dists[i*v+k] + dists[k*v+j]
-			}
-
-
+		for i=istart;i <iend;i++{
+			for j=0; j<v; j++ {
+				var intermediary uint32 = dists[i*v+k] + dists[k*v+j];
+				//check for overflows
+				if ((intermediary >= dists[i*v+k]) &&
+					(intermediary >= dists[k*v+j]) &&
+					(intermediary < dists[i*v+j])){
+					dists[i*v+j] = dists[i*v+k] + dists[k*v+j]
+				}
+		}
 	}
 	}()
 }
@@ -86,12 +90,18 @@ func memsetRepeat(a []uint32, v uint32) {
 		copy(a[bp:], a[:bp])
 	}
 }
-
+func makeTimestamp() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
+}
 
 //Main program - reads input, calls FW, shows output
 func main() {
+//	runtime.GOMAXPROCS(1)
 	//Read input
 	//First line : v(number of vertices)  and e (number of edges)
+
+//	fmt.Printf("No of available cores %d ", runtime.NumCPU())
+
 	var v,e uint32;
 	_, errv := fmt.Scanf("%d %d", &v, &e)
 	if errv!=nil {
@@ -100,13 +110,14 @@ func main() {
 	//allocates distances matrix (w/sice v*v)
 	// and sets it with max distance and 0 for own vertex
 	dists := make([]uint32, v*v);
-
+	start:=makeTimestamp()
 	memsetRepeat(dists, 1<<32 - 1)
+	end:=makeTimestamp()
+//	fmt.Printf("memsetRepeat time %d\n", end-start)
 	var i uint32
 	for i= 0; i <v; i++ {
 		dists[i*v+i] = 0;
 	}
-	//fmt.Printf("len=%d cap=%d %v\n", len(dists), cap(dists), dists)
 	var source, dest ,cost uint32;
 	for i=0;i<e; i++ {
 		fmt.Scanf("%d %d %d", &source, &dest, &cost);
