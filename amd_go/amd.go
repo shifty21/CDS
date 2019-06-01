@@ -2,24 +2,40 @@ package main
 
 import (
 	"fmt"
+	"sync"
 )
 
 func md_all_pairs (dists []uint32, v uint32) {
+	var wg sync.WaitGroup
 
-	var k,i,j uint32;
+	var k,i uint32;
 	for k =0; k < v ; k++ {
 		for i=0; i<v; i++ {
-			for j=0; j<v; j++ {
-				var intermediary uint32 = dists[i*v+k] + dists[k*v+j];
-				//check for overflows
-				if ((intermediary >= dists[i*v+k]) &&
-					(intermediary >= dists[k*v+j]) &&
-					(intermediary < dists[i*v+j])){
-					dists[i*v+j] = dists[i*v+k] + dists[k*v+j]
-				}
-			}
+			wg.Add(1);
+			go internal_loop(dists, v, k,i,  &wg)
+			wg.Wait();
 		}
+		wg.Wait()
 	}
+}
+
+
+func internal_loop(dists []uint32, v uint32, k uint32,i uint32, wg *sync.WaitGroup) {
+	var j uint32;
+	defer wg.Done()
+	go func(){
+		for j=0; j<v; j++ {
+			var intermediary uint32 = dists[i*v+k] + dists[k*v+j];
+			//check for overflows
+			if ((intermediary >= dists[i*v+k]) &&
+				(intermediary >= dists[k*v+j]) &&
+				(intermediary < dists[i*v+j])){
+				dists[i*v+j] = dists[i*v+k] + dists[k*v+j]
+			}
+
+
+	}
+	}()
 }
 
 func amd (dists []uint32,v uint32) {
@@ -70,6 +86,8 @@ func memsetRepeat(a []uint32, v uint32) {
 		copy(a[bp:], a[:bp])
 	}
 }
+
+
 //Main program - reads input, calls FW, shows output
 func main() {
 	//Read input
