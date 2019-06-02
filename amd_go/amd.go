@@ -35,7 +35,10 @@ func internal_loop(dists []uint32, v uint32, k uint32,istart uint32,iend uint32,
 	func(){
 		for i=istart;i <iend;i++{
 			for j=0; j<v; j++ {
-				var intermediary uint32 = dists[i*v+k] + dists[k*v+j];
+				var intermediary1 uint32 = dists[i*v+k];
+				var intermediary2 uint32 = dists[k*v+j];
+				var intermediary uint32 = intermediary1 + intermediary2;
+				//var intermediary uint32 = dists[i*v+k] + dists[k*v+j];
 				//check for overflows
 				if ((intermediary >= dists[i*v+k]) &&
 					(intermediary >= dists[k*v+j]) &&
