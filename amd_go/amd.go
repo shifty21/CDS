@@ -32,7 +32,7 @@ func md_all_pairs (dists []uint32, v uint32) {
 func internal_loop(dists []uint32, v uint32, k uint32,istart uint32,iend uint32, wg *sync.WaitGroup) {
 	var j,i uint32;
 	defer wg.Done()
-	go func(){
+	func(){
 		for i=istart;i <iend;i++{
 			for j=0; j<v; j++ {
 				var intermediary uint32 = dists[i*v+k] + dists[k*v+j];
