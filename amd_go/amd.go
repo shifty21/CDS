@@ -14,7 +14,13 @@ import (
 
 func md_all_pairs (dists []uint32, v uint32) {
 	var wg sync.WaitGroup
-	var div = v/100
+	var div uint32
+	if v < 100 {
+		div = v/2
+	} else {
+		div = v/100
+	}
+	// var div = v/100
 	var k,i uint32;
 	for k =0; k < v ; k++ {
 		for i=0; i<v-div; i=i+div {
