@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	"runtime"
+	// "runtime"
 	"os"
-	"log"
-	"flag"
-	"runtime/pprof"
+	// "log"
+	// "flag"
+	// "runtime/pprof"
+	"runtime/trace"
 
 )
 
@@ -109,24 +110,25 @@ func memsetRepeat(a []uint32, v uint32) {
 func makeTimestamp() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }
-var cpuprofile = flag.String("cpuprofile", "cpu.prof", "write cpu profile to `file`")
-var memprofile = flag.String("memprofile", "mem.prof", "write memory profile to `file`")
+// var cpuprofile = flag.String("cpuprofile", "cpu.prof", "write cpu profile to `file`")
+// var memprofile = flag.String("memprofile", "mem.prof", "write memory profile to `file`")
 //Main program - reads input, calls FW, shows output
 func main() {
+	trace.Start(os.Stderr)
+	defer trace.Stop()
 
-
-	flag.Parse()
-	if *cpuprofile != "" {
-		f, err := os.Create("cpu.prof")
-		if err != nil {
-			log.Fatal("could not create CPU profile: ", err)
-		}
-		defer f.Close()
-		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Fatal("could not start CPU profile: ", err)
-		}
-		defer pprof.StopCPUProfile()
-	}
+	// flag.Parse()
+	// if *cpuprofile != "" {
+	// 	f, err := os.Create("cpu.prof")
+	// 	if err != nil {
+	// 		log.Fatal("could not create CPU profile: ", err)
+	// 	}
+	// 	defer f.Close()
+	// 	if err := pprof.StartCPUProfile(f); err != nil {
+	// 		log.Fatal("could not start CPU profile: ", err)
+	// 	}
+	// 	defer pprof.StopCPUProfile()
+	// }
 
 	//Read input
 	//First line : v(number of vertices)  and e (number of edges)
@@ -162,17 +164,17 @@ func main() {
 
 	// ... rest of the program ...
 
-	if *memprofile != "" {
-		f, err := os.Create("mem.prof")
-		if err != nil {
-			log.Fatal("could not create memory profile: ", err)
-		}
-		defer f.Close()
-		runtime.GC() // get up-to-date statistics
-		if err := pprof.WriteHeapProfile(f); err != nil {
-			log.Fatal("could not write memory profile: ", err)
-		}
-	}
+	// if *memprofile != "" {
+	// 	f, err := os.Create("mem.prof")
+	// 	if err != nil {
+	// 		log.Fatal("could not create memory profile: ", err)
+	// 	}
+	// 	defer f.Close()
+	// 	runtime.GC() // get up-to-date statistics
+	// 	if err := pprof.WriteHeapProfile(f); err != nil {
+	// 		log.Fatal("could not write memory profile: ", err)
+	// 	}
+	// }
 
 
 
