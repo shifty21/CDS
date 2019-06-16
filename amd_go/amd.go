@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 	// "runtime"
-	"os"
+	// "os"
 	// "log"
 	// "flag"
 	// "runtime/pprof"
-	"runtime/trace"
+	// "runtime/trace"
 
 )
 
@@ -114,8 +114,8 @@ func makeTimestamp() int64 {
 // var memprofile = flag.String("memprofile", "mem.prof", "write memory profile to `file`")
 //Main program - reads input, calls FW, shows output
 func main() {
-	trace.Start(os.Stderr)
-	defer trace.Stop()
+	// trace.Start(os.Stderr)
+	// defer trace.Stop()
 
 	// flag.Parse()
 	// if *cpuprofile != "" {
