@@ -1,13 +1,13 @@
 package main 
 import (
 	"fmt"
-	// "log"
-	// "runtime/pprof"
-	// "flag"
-	// "os"
-	// "runtime"
 	"sync"
-	// "runtime/trace"
+	"log"
+	"runtime/pprof"
+	"flag"
+	"os"
+	// "runtime"
+	// "sync"
 )
 
 
@@ -36,22 +36,22 @@ func MR_get(mat* Matrix, n int, r int, c int, d int) (float32) {
 var omega float32 = 0.8
 var a,b,c,p,bnd,wrk1,wrk2 Matrix;
 
-// var cpuprofile = flag.String("cpuprofile", "cpu.prof", "write cpu profile to `file`")
-// var memprofile = flag.String("memprofile", "", "write memory profile to `file`")
+var cpuprofile = flag.String("cpuprofile", "cpu.prof", "write cpu profile to `file`")
+var memprofile = flag.String("memprofile", "", "write memory profile to `file`")
 
 func main() {
-	// flag.Parse()
-	// if *cpuprofile != "" {
-		// f, err := os.Create("cpu.prof")
-		// if err != nil {
-		// 	log.Fatal("could not create CPU profile: ", err)
-		// }
-		// defer f.Close()
-		// if err := pprof.StartCPUProfile(f); err != nil {
-			// log.Fatal("could not start CPU profile: ", err)
-		// }
-		// defer pprof.StopCPUProfile()
-	// }
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create("cpu.prof")
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+		defer f.Close()
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+		defer pprof.StopCPUProfile()
+	}
 	// trace.Start(os.Stderr)
 	// defer trace.Stop()
 
@@ -176,60 +176,31 @@ func  mat_set_init(mat* Matrix) {
 
 func jacobi(nn int, a* Matrix, b* Matrix,c* Matrix, p* Matrix, bnd* Matrix, wrk1* Matrix, wrk2* Matrix) (float32) {
 	var i,j,k,n,imax,jmax,kmax int;
-	var gosa,s0,ss float32;
+	var gosa float32;
 	imax = p.mrows-1;
 	jmax = p.mcols-1;
 	kmax = p.mdeps-1;
 	// var mux sync.Mutex
-	//fmt.Printf("inside jacobi imax : %d, jmax : %d, kmax: %d \n",imax,jmax,kmax);
+	fmt.Printf("inside jacobi imax : %d, jmax : %d, kmax: %d \n",imax,jmax,kmax);
 	// var wg sync.WaitGroup
 	//200
 	// var mux sync.Mutex
 	for n=0;n<nn;n++ {
 		gosa = 0.0
-		//256
-		// var temp_gosa = make(chan float32)
+		var wg sync.WaitGroup
+		var gosa_ch = make(chan float32)
 		for i=1;i<imax;i++ {
-			// //256
-			// wg.Add(1)
-			// mux.Lock()
-			// go internal_jacobi(i, jmax, kmax, &wg, temp_gosa)
-			// mux.Unlock()
-			for j:=1;j<jmax;j++ {
-				//512
-				for k:=1;k<kmax;k++ {
-					s0 = MR_get(a,0,i,j,k) * MR_get(p,0,i+1,j,  k) +
-						MR_get(a,1,i,j,k) * MR_get(p,0,i,  j+1,k) +
-						MR_get(a,2,i,j,k) * MR_get(p,0,i,  j,  k+1) +
-						MR_get(b,0,i,j,k) *
-						(MR_get(p,0,i+1,j+1,k) - MR_get(p,0,i+1,j-1,k) -
-						MR_get(p,0,i-1,j+1,k) +MR_get(p,0,i-1,j-1,k)) +
-						MR_get(b,1,i,j,k) *
-						( MR_get(p,0,i,j+1,k+1) - MR_get(p,0,i,j-1,k+1) -
-						MR_get(p,0,i,j+1,k-1) + MR_get(p,0,i,j-1,k-1) ) +
-						MR_get(b,2,i,j,k) *
-						( MR_get(p,0,i+1,j,k+1) - MR_get(p,0,i-1,j,k+1) -
-						MR_get(p,0,i+1,j,k-1) + MR_get(p,0,i-1,j,k-1) ) +
-						MR_get(c,0,i,j,k) * MR_get(p,0,i-1,j,  k) +
-						MR_get(c,1,i,j,k) * MR_get(p,0,i,  j-1,k) +
-						MR_get(c,2,i,j,k) * MR_get(p,0,i,  j,  k-1) +
-						MR_get(wrk1,0,i,j,k);
-					ss = (s0*MR_get(a,3,i,j,k) - MR_get(p,0,i,j,k))*MR_get(bnd,0,i,j,k);
-					gosa += ss*ss;
-					// temp_gosa <- gosa
-					// fmt.Printf("Goas : %.10f \n", gosa);
-					MR_set(wrk2,0,i,j,k,(MR_get(p,0,i,j,k) + omega*ss));
-				}
-			}
+			wg.Add(1)
+			go internal_jacobi(i,&wg,jmax,kmax, gosa_ch, n)
 		}
-		// go func() {
-		// 	wg.Wait()
-		// 	close(temp_gosa)
-		// }()
+		go func() {
+			wg.Wait()
+			close(gosa_ch)
+		}()
 
-		// for x := range temp_gosa {
-		// 	gosa = x
-		// }
+		for g:= range gosa_ch {
+			gosa +=g
+		}
 		for i=1;i<imax;i++ {
 			for j=1;j<jmax;j++ {
 				for k=1;k<kmax;k++ {
@@ -244,12 +215,12 @@ func jacobi(nn int, a* Matrix, b* Matrix,c* Matrix, p* Matrix, bnd* Matrix, wrk1
 return gosa;
 }
 
-func internal_jacobi(i int, jmax int, kmax int, wg *sync.WaitGroup, temp_gosa chan float32) {
+func internal_jacobi(i int, wg *sync.WaitGroup, jmax int, kmax int, gosa_ch chan<-float32, n int) {
 	defer wg.Done()
-	var gosa, s0, ss float32;
-	for j:=1;j<jmax;j++ {
-		//512
-		for k:=1;k<kmax;k++ {
+	fmt.Printf("inside internal_jacobi index of i --- %d for iteration of n --- %d \n", i,n)
+	var ss, s0 float32
+		for j:=1;j<jmax;j++ {
+				for k:=1;k<kmax;k++ {
 					s0 = MR_get(&a,0,i,j,k) * MR_get(&p,0,i+1,j,  k) +
 						MR_get(&a,1,i,j,k) * MR_get(&p,0,i,  j+1,k) +
 						MR_get(&a,2,i,j,k) * MR_get(&p,0,i,  j,  k+1) +
@@ -269,10 +240,9 @@ func internal_jacobi(i int, jmax int, kmax int, wg *sync.WaitGroup, temp_gosa ch
 
 					ss = (s0*MR_get(&a,3,i,j,k) - MR_get(&p,0,i,j,k))*MR_get(&bnd,0,i,j,k);
 
-			gosa += ss*ss;
-			temp_gosa <- gosa
-					// fmt.Printf("Goas : %.10f \n", gosa);
+					gosa_ch <- ss*ss;
+					//fmt.Printf("Goas : %.10f \n", gosa);
 					MR_set(&wrk2,0,i,j,k,(MR_get(&p,0,i,j,k) + omega*ss));
+				}
 		}
-	}
 }
