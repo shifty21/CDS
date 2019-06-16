@@ -22,5 +22,5 @@ RUN cd /tmp/himeno_go && \
     make && \
     cp /tmp/himeno_go/bin/himeno /usr/bin/ && \
     cd ~/
-
+ADD ./amd_go/baseline_c/amd /usr/bin/
 #   rm -r /tmp/mopp-2018-t0-harmonic-progression-sum
