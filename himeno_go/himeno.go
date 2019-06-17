@@ -53,7 +53,7 @@ func main() {
 		}
 		defer pprof.StopCPUProfile()
 	}
-	// trace.Start(os.Stderr)
+	// trace.Start(os.Stderr// )
 	// defer trace.Stop()
 
 	var nn int;
@@ -69,7 +69,6 @@ func main() {
 	mimax = msize[0];
 	mjmax = msize[1];
 	mkmax = msize[2];
-
 	/*
    *    Initializing matrixes
    */
@@ -189,7 +188,7 @@ func jacobi(nn int, a* Matrix, b* Matrix,c* Matrix, p* Matrix, bnd* Matrix, wrk1
 	for n=0;n<nn;n++ {
 		gosa = 0.0
 		var wg sync.WaitGroup
-		var gosa_ch = make(chan float32)
+		var gosa_ch = make(chan float32,100)
 		for i=1;i<imax;i++ {
 			wg.Add(1)
 			go internal_jacobi(i,&wg,jmax,kmax, gosa_ch, n)
@@ -219,31 +218,48 @@ return gosa;
 func internal_jacobi(i int, wg *sync.WaitGroup, jmax int, kmax int, gosa_ch chan<-float32, n int) {
 	defer wg.Done()
 	// fmt.Printf("inside internal_jacobi index of i --- %d for iteration of n --- %d \n", i,n)
-	var ss, s0 float32
-		for j:=1;j<jmax;j++ {
-				for k:=1;k<kmax;k++ {
-					s0 = MR_get(&a,0,i,j,k) * MR_get(&p,0,i+1,j,  k) +
-						MR_get(&a,1,i,j,k) * MR_get(&p,0,i,  j+1,k) +
-						MR_get(&a,2,i,j,k) * MR_get(&p,0,i,  j,  k+1) +
-						MR_get(&b,0,i,j,k) *
-						(MR_get(&p,0,i+1,j+1,k) - MR_get(&p,0,i+1,j-1,k) -
-						MR_get(&p,0,i-1,j+1,k) +MR_get(&p,0,i-1,j-1,k)) +
-						MR_get(&b,1,i,j,k) *
-						( MR_get(&p,0,i,j+1,k+1) - MR_get(&p,0,i,j-1,k+1) -
-						MR_get(&p,0,i,j+1,k-1) + MR_get(&p,0,i,j-1,k-1) ) +
-						MR_get(&b,2,i,j,k) *
-						( MR_get(&p,0,i+1,j,k+1) - MR_get(&p,0,i-1,j,k+1) -
-						MR_get(&p,0,i+1,j,k-1) + MR_get(&p,0,i-1,j,k-1) ) +
-						MR_get(&c,0,i,j,k) * MR_get(&p,0,i-1,j,  k) +
-						MR_get(&c,1,i,j,k) * MR_get(&p,0,i,  j-1,k) +
-						MR_get(&c,2,i,j,k) * MR_get(&p,0,i,  j,  k-1) +
-						MR_get(&wrk1,0,i,j,k);
+	// var ss, s0 float32
+	var gosa_int float32
+	for j:=1;j<jmax;j++ {
+		wg.Add(1)
+		go internal_j(i,j,gosa_ch,wg,n, kmax)
+	}
+	go func(){
+		wg.Wait()
+	}()
+	gosa_ch <- gosa_int
+}
 
-					ss = (s0*MR_get(&a,3,i,j,k) - MR_get(&p,0,i,j,k))*MR_get(&bnd,0,i,j,k);
+func internal_j(i int, j int, gosa_ch chan<-float32,wg *sync.WaitGroup, n int,kmax int) {
+	defer wg.Done()
+	var s0,ss float32
+	var gosa float32
+	for k:=1;k<kmax;k++{
+		internal_k()
+	}
+	gosa_ch<-gosa
+}
 
-					gosa_ch <- ss*ss;
-					//fmt.Printf("Goas : %.10f \n", gosa);
-					MR_set(&wrk2,0,i,j,k,(MR_get(&p,0,i,j,k) + omega*ss));
-				}
-		}
+
+func internal_k() {
+	s0 = MR_get(&a,0,i,j,k) * MR_get(&p,0,i+1,j,  k) +
+		MR_get(&a,1,i,j,k) * MR_get(&p,0,i,  j+1,k) +
+		MR_get(&a,2,i,j,k) * MR_get(&p,0,i,  j,  k+1) +
+		MR_get(&b,0,i,j,k) *
+		(MR_get(&p,0,i+1,j+1,k) - MR_get(&p,0,i+1,j-1,k) -
+		MR_get(&p,0,i-1,j+1,k) +MR_get(&p,0,i-1,j-1,k)) +
+		MR_get(&b,1,i,j,k) *
+		( MR_get(&p,0,i,j+1,k+1) - MR_get(&p,0,i,j-1,k+1) -
+		MR_get(&p,0,i,j+1,k-1) + MR_get(&p,0,i,j-1,k-1) ) +
+		MR_get(&b,2,i,j,k) *
+		( MR_get(&p,0,i+1,j,k+1) - MR_get(&p,0,i-1,j,k+1) -
+		MR_get(&p,0,i+1,j,k-1) + MR_get(&p,0,i-1,j,k-1) ) +
+		MR_get(&c,0,i,j,k) * MR_get(&p,0,i-1,j,  k) +
+		MR_get(&c,1,i,j,k) * MR_get(&p,0,i,  j-1,k) +
+		MR_get(&c,2,i,j,k) * MR_get(&p,0,i,  j,  k-1) +
+		MR_get(&wrk1,0,i,j,k);
+	ss = (s0*MR_get(&a,3,i,j,k) - MR_get(&p,0,i,j,k))*MR_get(&bnd,0,i,j,k);
+	gosa +=ss*ss;
+	//fmt.Printf("Goas : %.10f \n", gosa);
+	MR_set(&wrk2,0,i,j,k,(MR_get(&p,0,i,j,k) + omega*ss));
 }
