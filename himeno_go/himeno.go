@@ -1,11 +1,14 @@
 package main 
 import (
 	"fmt"
+	"sync"
 	"log"
 	"runtime/pprof"
+	// "runtime/trace"
 	"flag"
 	"os"
-	"runtime"
+	// "runtime"
+	// "sync"
 )
 
 
@@ -50,7 +53,8 @@ func main() {
 		}
 		defer pprof.StopCPUProfile()
 	}
-
+	// trace.Start(os.Stderr)
+	// defer trace.Stop()
 
 	var nn int;
 	var mimax,mjmax,mkmax int;
@@ -111,17 +115,17 @@ func main() {
 	//clear_mat(&b);
 	//clear_mat(&c);
 
-	if *memprofile != "" {
-		f, err := os.Create("mem.prof")
-		if err != nil {
-			log.Fatal("could not create memory profile: ", err)
-		}
-		defer f.Close()
-		runtime.GC() // get up-to-date statistics
-		if err := pprof.WriteHeapProfile(f); err != nil {
-			log.Fatal("could not write memory profile: ", err)
-		}
-	}
+	// if *memprofile != "" {
+	// 	f, err := os.Create("mem.prof")
+	// 	if err != nil {
+	// 		log.Fatal("could not create memory profile: ", err)
+	// 	}
+	// 	defer f.Close()
+	// 	runtime.GC() // get up-to-date statistics
+	// 	if err := pprof.WriteHeapProfile(f); err != nil {
+	// 		log.Fatal("could not write memory profile: ", err)
+	// 	}
+	// }
 
 }
 
@@ -132,7 +136,6 @@ func new_mat (mat* Matrix, vmnums int, vmrows int, vmcols int, vmdeps int) (int)
 		mat.mcols= vmcols
 		mat.mdeps= vmdeps
 		mat.m = make([]float32,vmnums*vmrows*vmcols*vmdeps)
-	
 	if mat.m !=nil {
 		//fmt.Printf("value of matrix: mrows : %d, mcols: %d, mdeps: : %d\n", mat.mnums,mat.mcols,mat.mdeps);
 		return 1
@@ -173,52 +176,74 @@ func  mat_set_init(mat* Matrix) {
 
 
 func jacobi(nn int, a* Matrix, b* Matrix,c* Matrix, p* Matrix, bnd* Matrix, wrk1* Matrix, wrk2* Matrix) (float32) {
-
 	var i,j,k,n,imax,jmax,kmax int;
-	var gosa,s0,ss float32;
+	var gosa float32;
 	imax = p.mrows-1;
 	jmax = p.mcols-1;
 	kmax = p.mdeps-1;
-	//fmt.Printf("inside jacobi imax : %d, jmax : %d, kmax: %d \n",imax,jmax,kmax);
+	// var mux sync.Mutex
+	// fmt.Printf("inside jacobi imax : %d, jmax : %d, kmax: %d \n",imax,jmax,kmax);
+	// var wg sync.WaitGroup
+	//200
+	// var mux sync.Mutex
 	for n=0;n<nn;n++ {
 		gosa = 0.0
+		var wg sync.WaitGroup
+		var gosa_ch = make(chan float32)
 		for i=1;i<imax;i++ {
-			for j=1;j<jmax;j++ {
-				for k=1;k<kmax;k++ {
-					s0 = MR_get(a,0,i,j,k) * MR_get(p,0,i+1,j,  k) +
-						MR_get(a,1,i,j,k) * MR_get(p,0,i,  j+1,k) +
-						MR_get(a,2,i,j,k) * MR_get(p,0,i,  j,  k+1) +
-						MR_get(b,0,i,j,k) *
-						(MR_get(p,0,i+1,j+1,k) - MR_get(p,0,i+1,j-1,k) -
-						MR_get(p,0,i-1,j+1,k) +MR_get(p,0,i-1,j-1,k)) +
-						MR_get(b,1,i,j,k) *
-						( MR_get(p,0,i,j+1,k+1) - MR_get(p,0,i,j-1,k+1) -
-						MR_get(p,0,i,j+1,k-1) + MR_get(p,0,i,j-1,k-1) ) +
-						MR_get(b,2,i,j,k) *
-						( MR_get(p,0,i+1,j,k+1) - MR_get(p,0,i-1,j,k+1) -
-						MR_get(p,0,i+1,j,k-1) + MR_get(p,0,i-1,j,k-1) ) +
-						MR_get(c,0,i,j,k) * MR_get(p,0,i-1,j,  k) +
-						MR_get(c,1,i,j,k) * MR_get(p,0,i,  j-1,k) +
-						MR_get(c,2,i,j,k) * MR_get(p,0,i,  j,  k-1) +
-						MR_get(wrk1,0,i,j,k);
-
-					ss = (s0*MR_get(a,3,i,j,k) - MR_get(p,0,i,j,k))*MR_get(bnd,0,i,j,k);
-
-					gosa += ss*ss;
-					//fmt.Printf("Goas : %.10f \n", gosa);
-					MR_set(wrk2,0,i,j,k,(MR_get(p,0,i,j,k) + omega*ss));
-
-				}
-			}
+			wg.Add(1)
+			go internal_jacobi(i,&wg,jmax,kmax, gosa_ch, n)
 		}
+		go func() {
+			wg.Wait()
+			close(gosa_ch)
+		}()
 
+		for g:= range gosa_ch {
+			gosa +=g
+		}
 		for i=1;i<imax;i++ {
 			for j=1;j<jmax;j++ {
 				for k=1;k<kmax;k++ {
 					MR_set(p,0,i,j,k,(MR_get(wrk2, 0, i, j, k)))
 				}
+
+			}
+
+		}
+// fmt.Printf("gosa value after %d is %f\n", n,gosa)
 	}
-}
-}
 return gosa;
+}
+
+func internal_jacobi(i int, wg *sync.WaitGroup, jmax int, kmax int, gosa_ch chan<-float32, n int) {
+	defer wg.Done()
+	// fmt.Printf("inside internal_jacobi index of i --- %d for iteration of n --- %d \n", i,n)
+	var ss, s0 float32
+		for j:=1;j<jmax;j++ {
+				for k:=1;k<kmax;k++ {
+					s0 = MR_get(&a,0,i,j,k) * MR_get(&p,0,i+1,j,  k) +
+						MR_get(&a,1,i,j,k) * MR_get(&p,0,i,  j+1,k) +
+						MR_get(&a,2,i,j,k) * MR_get(&p,0,i,  j,  k+1) +
+						MR_get(&b,0,i,j,k) *
+						(MR_get(&p,0,i+1,j+1,k) - MR_get(&p,0,i+1,j-1,k) -
+						MR_get(&p,0,i-1,j+1,k) +MR_get(&p,0,i-1,j-1,k)) +
+						MR_get(&b,1,i,j,k) *
+						( MR_get(&p,0,i,j+1,k+1) - MR_get(&p,0,i,j-1,k+1) -
+						MR_get(&p,0,i,j+1,k-1) + MR_get(&p,0,i,j-1,k-1) ) +
+						MR_get(&b,2,i,j,k) *
+						( MR_get(&p,0,i+1,j,k+1) - MR_get(&p,0,i-1,j,k+1) -
+						MR_get(&p,0,i+1,j,k-1) + MR_get(&p,0,i-1,j,k-1) ) +
+						MR_get(&c,0,i,j,k) * MR_get(&p,0,i-1,j,  k) +
+						MR_get(&c,1,i,j,k) * MR_get(&p,0,i,  j-1,k) +
+						MR_get(&c,2,i,j,k) * MR_get(&p,0,i,  j,  k-1) +
+						MR_get(&wrk1,0,i,j,k);
+
+					ss = (s0*MR_get(&a,3,i,j,k) - MR_get(&p,0,i,j,k))*MR_get(&bnd,0,i,j,k);
+
+					gosa_ch <- ss*ss;
+					//fmt.Printf("Goas : %.10f \n", gosa);
+					MR_set(&wrk2,0,i,j,k,(MR_get(&p,0,i,j,k) + omega*ss));
+				}
+		}
 }
