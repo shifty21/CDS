@@ -38,7 +38,7 @@ func md_all_pairs (dists []uint32, v uint32) {
 
 func internal_loop(dists []uint32, v uint32, k uint32,istart uint32,iend uint32, wg *sync.WaitGroup) {
 	var j,i uint32;
-	defer wg.Done()
+	defer (*wg).Done()
 	go func(){
 		for i=istart;i <iend;i++{
 			//pre calculating indexes 1.04m to 22.29s
