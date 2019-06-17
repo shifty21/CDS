@@ -4,6 +4,7 @@ import (
 	"sync"
 	"log"
 	"runtime/pprof"
+	// "runtime/trace"
 	"flag"
 	"os"
 	// "runtime"
@@ -181,7 +182,7 @@ func jacobi(nn int, a* Matrix, b* Matrix,c* Matrix, p* Matrix, bnd* Matrix, wrk1
 	jmax = p.mcols-1;
 	kmax = p.mdeps-1;
 	// var mux sync.Mutex
-	fmt.Printf("inside jacobi imax : %d, jmax : %d, kmax: %d \n",imax,jmax,kmax);
+	// fmt.Printf("inside jacobi imax : %d, jmax : %d, kmax: %d \n",imax,jmax,kmax);
 	// var wg sync.WaitGroup
 	//200
 	// var mux sync.Mutex
@@ -217,7 +218,7 @@ return gosa;
 
 func internal_jacobi(i int, wg *sync.WaitGroup, jmax int, kmax int, gosa_ch chan<-float32, n int) {
 	defer wg.Done()
-	fmt.Printf("inside internal_jacobi index of i --- %d for iteration of n --- %d \n", i,n)
+	// fmt.Printf("inside internal_jacobi index of i --- %d for iteration of n --- %d \n", i,n)
 	var ss, s0 float32
 		for j:=1;j<jmax;j++ {
 				for k:=1;k<kmax;k++ {
