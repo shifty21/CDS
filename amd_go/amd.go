@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	// "runtime"
+	"runtime"
 	// "os"
 	// "log"
 	// "flag"
@@ -15,13 +15,7 @@ import (
 
 func md_all_pairs (dists []uint32, v uint32) {
 	var wg sync.WaitGroup
-	var div uint32
-	if v < 100 {
-		div = v/2
-	} else {
-		div = v/100
-	}
-	// var div = v/100
+	var div uint32 = v/uint32(runtime.NumCPU())
 	var k,i uint32;
 	for k =0; k < v ; k++ {
 		for i=0; i<v-div; i=i+div {
@@ -38,16 +32,18 @@ func md_all_pairs (dists []uint32, v uint32) {
 
 func internal_loop(dists []uint32, v uint32, k uint32,istart uint32,iend uint32, wg *sync.WaitGroup) {
 	var j,i uint32;
-	defer (*wg).Done()
+	(*wg).Done()
 	go func(){
 		for i=istart;i <iend;i++{
 			//pre calculating indexes 1.04m to 22.29s
 			ivk := i*v+k
+			temp_dists := dists[ivk]
 			for j=0; j<v; j++ {
 				// var intermediary uint32 = intermediary1 + intermediary2;
 				kvj := k*v+j
 				ivj := i*v+j
-				var intermediary uint32 = dists[ivk] + dists[kvj];
+				temp_dists2 := dists[kvj]
+				var intermediary uint32 = temp_dists + temp_dists2;
 				//check for overflows
 				if ((intermediary >= dists[ivk]) &&
 					(intermediary >= dists[kvj]) &&
