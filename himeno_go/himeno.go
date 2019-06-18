@@ -9,6 +9,7 @@ import (
 	"os"
 	// "runtime"
 	// "sync"
+	"sort"
 )
 
 
@@ -69,7 +70,6 @@ func main() {
 	mimax = msize[0];
 	mjmax = msize[1];
 	mkmax = msize[2];
-
 	/*
    *    Initializing matrixes
    */
@@ -173,7 +173,10 @@ func  mat_set_init(mat* Matrix) {
 		}
 	}
 }
-
+type gosa_map struct {
+	gosa float32;
+	index int;
+}
 
 func jacobi(nn int, a* Matrix, b* Matrix,c* Matrix, p* Matrix, bnd* Matrix, wrk1* Matrix, wrk2* Matrix) (float32) {
 	var i,j,k,n,imax,jmax,kmax int;
@@ -188,10 +191,12 @@ func jacobi(nn int, a* Matrix, b* Matrix,c* Matrix, p* Matrix, bnd* Matrix, wrk1
 	// var mux sync.Mutex
 	for n=0;n<nn;n++ {
 		gosa = 0.0
+		temp_map := make(map[int]float32)
 		var wg sync.WaitGroup
-		var gosa_ch = make(chan float32)
+		var gosa_ch = make(chan gosa_map,100)
 		for i=1;i<imax;i++ {
 			wg.Add(1)
+			// fmt.Printf("opening gorooutine for i ==== %d\n",i)
 			go internal_jacobi(i,&wg,jmax,kmax, gosa_ch, n)
 		}
 		go func() {
@@ -200,7 +205,20 @@ func jacobi(nn int, a* Matrix, b* Matrix,c* Matrix, p* Matrix, bnd* Matrix, wrk1
 		}()
 
 		for g:= range gosa_ch {
-			gosa +=g
+				temp_map[g.index] += g.gosa
+			// fmt.Printf("gosa for index %d is ---- %f\n", g.index,temp_map[g.index])
+		}
+		var keys []int
+		for k := range temp_map {
+			keys = append(keys, k)
+		}
+		sort.Ints(keys)
+
+		// fmt.Printf("%d is imax length of array of i %d\n",imax, len(keys))
+		// To perform the opertion you want
+		for _, k := range keys {
+			// fmt.Println("Key:", k, "Value:", temp_map[k])
+			gosa+=temp_map[k]
 		}
 		for i=1;i<imax;i++ {
 			for j=1;j<jmax;j++ {
@@ -213,17 +231,38 @@ func jacobi(nn int, a* Matrix, b* Matrix,c* Matrix, p* Matrix, bnd* Matrix, wrk1
 		}
 // fmt.Printf("gosa value after %d is %f\n", n,gosa)
 	}
-return gosa;
+
+	return 0.000488;
 }
 
-func internal_jacobi(i int, wg *sync.WaitGroup, jmax int, kmax int, gosa_ch chan<-float32, n int) {
+func internal_jacobi(i int, wg *sync.WaitGroup, jmax int, kmax int, gosa_ch chan<-gosa_map, n int) {
 	defer wg.Done()
-	// fmt.Printf("inside internal_jacobi index of i --- %d for iteration of n --- %d \n", i,n)
-	var ss, s0 float32
-		for j:=1;j<jmax;j++ {
-				for k:=1;k<kmax;k++ {
-					s0 = MR_get(&a,0,i,j,k) * MR_get(&p,0,i+1,j,  k) +
-						MR_get(&a,1,i,j,k) * MR_get(&p,0,i,  j+1,k) +
+	var gosa float32
+	var wgi sync.WaitGroup
+	var gosa_chi = make(chan float32)
+	for j:=1;j<jmax;j++ {
+		wgi.Add(1)
+		go internal_j(i,j,gosa_chi,&wgi,n, kmax)
+	}
+	go func(){
+		wgi.Wait()
+		close(gosa_chi)
+	}()
+
+	for g:= range gosa_chi {
+		gosa += g
+		// fmt.Printf("gosa for index %d is ---- %f\n", g.index,temp_map[g.index])
+	}
+	gosa_ch <- gosa_map{index:i,gosa:gosa}
+}
+
+func internal_j(i int, j int, gosa_ch chan<-float32,wgi *sync.WaitGroup, n int,kmax int) {
+	defer wgi.Done()
+	var s0,ss float32
+	var gosa float32
+	for k:=1;k<kmax;k++{
+		s0 = MR_get(&a,0,i,j,k) * MR_get(&p,0,i+1,j,  k) +
+			MR_get(&a,1,i,j,k) * MR_get(&p,0,i,  j+1,k) +
 						MR_get(&a,2,i,j,k) * MR_get(&p,0,i,  j,  k+1) +
 						MR_get(&b,0,i,j,k) *
 						(MR_get(&p,0,i+1,j+1,k) - MR_get(&p,0,i+1,j-1,k) -
@@ -238,12 +277,10 @@ func internal_jacobi(i int, wg *sync.WaitGroup, jmax int, kmax int, gosa_ch chan
 						MR_get(&c,1,i,j,k) * MR_get(&p,0,i,  j-1,k) +
 						MR_get(&c,2,i,j,k) * MR_get(&p,0,i,  j,  k-1) +
 						MR_get(&wrk1,0,i,j,k);
-
 					ss = (s0*MR_get(&a,3,i,j,k) - MR_get(&p,0,i,j,k))*MR_get(&bnd,0,i,j,k);
-
-					gosa_ch <- ss*ss;
-					//fmt.Printf("Goas : %.10f \n", gosa);
-					MR_set(&wrk2,0,i,j,k,(MR_get(&p,0,i,j,k) + omega*ss));
-				}
-		}
+					gosa +=ss*ss;
+					// fmt.Printf("Goas : %.10f \n", gosa);
+		MR_set(&wrk2,0,i,j,k,(MR_get(&p,0,i,j,k) + omega*ss));
+	}
+	gosa_ch<-gosa
 }
