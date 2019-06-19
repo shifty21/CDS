@@ -12,7 +12,7 @@ import (
 	// "runtime/trace"
 
 )
-
+const infinity = 4294967295
 func md_all_pairs (dists []uint32, v uint32) {
 	var wg sync.WaitGroup
 	var div uint32 = v/uint32(runtime.NumCPU())
@@ -31,26 +31,30 @@ func md_all_pairs (dists []uint32, v uint32) {
 
 
 func internal_loop(dists []uint32, v uint32, k uint32,istart uint32,iend uint32, wg *sync.WaitGroup) {
-	var j,i uint32;
-	(*wg).Done()
 	go func(){
+		var j,i uint32;
+		(*wg).Done()
 		for i=istart;i <iend;i++{
 			//pre calculating indexes 1.04m to 22.29s
 			ivk := i*v+k
 			temp_dists := dists[ivk]
-			for j=0; j<v; j++ {
-				// var intermediary uint32 = intermediary1 + intermediary2;
-				kvj := k*v+j
-				ivj := i*v+j
-				temp_dists2 := dists[kvj]
-				var intermediary uint32 = temp_dists + temp_dists2;
-				//check for overflows
-				if ((intermediary >= dists[ivk]) &&
-					(intermediary >= dists[kvj]) &&
-					(intermediary < dists[ivj])){
-					dists[ivj] = dists[ivk] + dists[kvj]
+			if temp_dists!= infinity{
+				for j=0; j<v; j++ {
+					// var intermediary uint32 = intermediary1 + intermediary2;
+					kvj := k*v+j
+					ivj := i*v+j
+					temp_dists2 := dists[kvj]
+					if temp_dists2!=infinity {
+						var intermediary uint32 = temp_dists + temp_dists2;
+						//check for overflows
+							if (intermediary < dists[ivj]){
+							dists[ivj] = dists[ivk] + dists[kvj]
+						}
+
+					}
 				}
-		}
+			}
+
 	}
 	}()
 }
