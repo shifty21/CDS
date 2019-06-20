@@ -147,7 +147,7 @@ func jacobi(nn int) (float64) {
 	for n=0;n<nn;n++ {
 		gosa = 0.0
 		var wg sync.WaitGroup
-		var gosa_ch = make(chan float64,100)
+		var gosa_ch = make(chan float64)
 		for i=1;i<imax;i++ {
 			wg.Add(1)
 			go internal_jacobi(i,jmax ,kmax ,n ,&wg ,gosa_ch)
@@ -173,18 +173,14 @@ func jacobi(nn int) (float64) {
 }
 
 func internal_jacobi(i int, jmax int, kmax int, n int, wg *sync.WaitGroup, gosa_ch chan<-float64) {
-	defer wg.Done()
 	for j:=1;j<jmax;j++ {
 		wg.Add(1)
 		go internal_j(i ,j ,kmax ,n ,wg , gosa_ch)
 	}
-	go func(){
-		wg.Wait()
-	}()
+	(*wg).Done()
 }
 
 func internal_j(i int, j int,kmax int,n int, wg *sync.WaitGroup, gosa_ch chan<-float64) {
-	defer wg.Done()
 	var s0,ss float64
 	var gosa float64
 	for k:=1;k<kmax;k++{
@@ -210,4 +206,6 @@ func internal_j(i int, j int,kmax int,n int, wg *sync.WaitGroup, gosa_ch chan<-f
 		MR_set(&wrk2,0,i,j,k,(MR_get(&p,0,i,j,k) + omega*ss));
 	}
 	gosa_ch<-gosa
+
+	(*wg).Done()
 }
