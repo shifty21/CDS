@@ -22,12 +22,12 @@ RUN cd /tmp/himeno_go && \
     make && \
     cp /tmp/himeno_go/bin/himeno /usr/bin/ && \
     cd ~/
-RUN rm -r /usr/bin/himeno
+#RUN rm -r /usr/bin/himeno
 
-ADD ./himeno_go/baseline_c /tmp/baseline_c
+#ADD ./himeno_go/baseline_c /tmp/baseline_c
 
-RUN cd /tmp/baseline_c && \
-    make && \
-    cp /tmp/baseline_c/himeno /usr/bin/ && \
-    cd ~/
+#RUN cd /tmp/baseline_c && \
+#    make && \
+#    cp /tmp/baseline_c/himeno /usr/bin/ && \
+#    cd ~/
 #   rm -r /tmp/mopp-2018-t0-harmonic-progression-sum
